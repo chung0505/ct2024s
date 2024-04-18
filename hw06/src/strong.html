@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Scatter Plot</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <img src="./picture/108590062.png" alt="Image" style="display: block; margin: 0 auto; max-width: 100%; height: auto;">
+    <div id="plot"></div>
+
+    <script>
+        Plotly.d3.csv('./li.csv', function(err, data) {
+            if (err) {
+                console.error(err);
+                return;
+            }
+
+            data.forEach(function(d) {
+                d.SSIM = +d.SSIM;
+                d.LPIPS = +d.LPIPS;
+            });
+
+            var filteredData = data.filter(function(d) {
+                return d.SSIM >= 0.7 && d.SSIM <= 0.9 && d.LPIPS >= 0.25 && d.LPIPS <= 0.5;
+            });
+
+            filteredData.forEach(function(d) {
+                // Add image URL property to each data point
+                d.imageURL = './picture/' + d.Student;
+            })
+
+            var trace = {
+                x: filteredData.map(function(d) { return d.SSIM; }),
+                y: filteredData.map(function(d) { return d.LPIPS; }),
+                text: filteredData.map(function(d) { return d.Student; }),
+                customdata: filteredData.map(function(d) { return d.imageURL; }),
+                mode: 'markers',
+                marker: {
+                    size: 10,
+                    color: 'blue',
+                    symbol: 'circle'
+                },
+                hoverinfo: 'text'
+            };
+
+            var layout = {
+                title: 'Scatter Plot - SSIM LPIPS Similarity',
+                xaxis: {
+                    title: 'SSIM',
+                    range: [0.7, 0.9],
+                    dtick: 0.05
+                },
+                yaxis: {
+                    title: 'LPIPS',
+                    range: [0.2, 0.5],
+                    dtick: 0.05
+                },
+                width: 800,
+                height: 600
+            };
+
+            Plotly.newPlot('plot', [trace], layout);
+
+            var plot = document.getElementById('plot');
+            plot.on('plotly_hover', function(data) {
+                var imageURL = data.points[0].customdata; // Get the custom data (image URL)
+                var imgElement = document.createElement('img');
+                imgElement.src = imageURL;
+                imgElement.style.width = '150px'; // Set the width of the image
+                imgElement.style.height = 'auto'; // Maintain aspect ratio
+                imgElement.style.position = 'absolute';
+                imgElement.style.left = data.points[0].xaxis.l2p(data.points[0].x) + 50 + 'px'; // Adjust position relative to point
+                imgElement.style.top = data.points[0].yaxis.l2p(data.points[0].y) + 250 + 'px'; // Adjust position relative to point
+                plot.appendChild(imgElement); // Append image element to plot
+                var points = data.points[0];
+                Plotly.restyle('plot', 'marker.color', [points.fullData.marker.color], [points.pointNumber]);
+            });
+
+            plot.on('plotly_unhover', function(data) {
+                plot.querySelectorAll('img').forEach(function(img) {
+                    img.remove();
+                });
+                Plotly.restyle('plot', 'marker.color', ['blue']);
+            });
+        });
+    </script>
+</body>
+</html>
